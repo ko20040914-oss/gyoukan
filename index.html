@@ -1,0 +1,851 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>行間 ― 翌朝、まず会いに行く人</title>
+<meta name="description" content="介護記録の自由記述をAIが夜のあいだに横断し、翌朝『まず確認すべき人』と根拠の引用を申し送るデモ（合成データ）">
+<style>
+  :root {
+    --bg: #f6f3ee;
+    --surface: #ffffff;
+    --ink: #2b2a28;
+    --muted: #6f6a62;
+    --line: #e4ded4;
+    --accent: #c2410c;
+    --accent-soft: #fff1e8;
+    --night: #1e2340;
+    --night-ink: #e8e6f5;
+    --glow: #ffd27a;
+    --ok: #3f7d58;
+    --warn-bg: #fff8e1;
+    --warn-line: #e9c46a;
+    --staff-a: #2f6db5;
+    --staff-b: #7b4bb3;
+    --staff-c: #2e8b6e;
+    --staff-d: #c0762a;
+    --staff-e: #c23b6b;
+    --radius: 14px;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    background: var(--bg);
+    color: var(--ink);
+    font-family: "Hiragino Sans", "Hiragino Kaku Gothic ProN", "Noto Sans JP", "Yu Gothic UI", Meiryo, system-ui, sans-serif;
+    line-height: 1.7;
+    -webkit-text-size-adjust: 100%;
+    padding-bottom: 72px; /* 合成データバナー分 */
+  }
+  button { font: inherit; cursor: pointer; }
+  .wrap { max-width: 640px; margin: 0 auto; padding: 0 16px; }
+
+  /* ===== 常時表示：合成データ注記 ===== */
+  .synthetic-banner {
+    position: fixed; left: 0; right: 0; bottom: 0; z-index: 50;
+    background: #2b2a28; color: #fff;
+    font-size: 12px; line-height: 1.5;
+    padding: 8px 16px calc(8px + env(safe-area-inset-bottom));
+    text-align: center;
+  }
+  .synthetic-banner strong { color: var(--glow); }
+
+  /* ===== ヘッダー ===== */
+  header.top {
+    padding: 28px 0 8px;
+  }
+  .brand { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
+  .brand h1 { margin: 0; font-size: 30px; letter-spacing: .12em; }
+  .brand .sub { color: var(--muted); font-size: 14px; }
+  .mode-row { display: flex; align-items: center; gap: 8px; margin-top: 10px; flex-wrap: wrap; }
+  .mode-badge {
+    display: inline-flex; align-items: center; gap: 6px;
+    font-size: 12px; font-weight: 700;
+    padding: 3px 10px; border-radius: 999px;
+    border: 1px solid currentColor;
+  }
+  .mode-badge.demo { color: #8a5a00; background: var(--warn-bg); }
+  .mode-badge.live { color: var(--ok); background: #eaf6ee; }
+  .mode-badge::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: currentColor; }
+  .link-btn {
+    background: none; border: none; color: var(--muted); text-decoration: underline;
+    font-size: 13px; padding: 4px;
+  }
+
+  .lead {
+    margin: 22px 0 6px;
+    padding: 22px 20px;
+    background: var(--night); color: var(--night-ink);
+    border-radius: var(--radius);
+    font-size: 19px; line-height: 1.9; letter-spacing: .04em;
+    font-feature-settings: "palt";
+  }
+  .lead span { display: block; }
+  .lead .dim { color: #aab0d6; font-size: 15px; margin-top: 8px; }
+
+  .principles {
+    font-size: 12.5px; color: var(--muted);
+    margin: 10px 0 0; padding: 0; list-style: none;
+    display: flex; flex-wrap: wrap; gap: 6px;
+  }
+  .principles li {
+    border: 1px solid var(--line); background: var(--surface);
+    padding: 2px 9px; border-radius: 999px;
+  }
+
+  /* ===== セクション ===== */
+  section.screen { display: none; }
+  section.screen.active { display: block; }
+  h2.sec {
+    font-size: 15px; color: var(--muted); font-weight: 700;
+    margin: 26px 0 10px; letter-spacing: .06em;
+    display: flex; justify-content: space-between; align-items: center; gap: 8px;
+  }
+  h2.sec small { font-weight: 400; font-size: 12px; }
+
+  .legend { display: flex; flex-wrap: wrap; gap: 6px 12px; font-size: 12px; color: var(--muted); margin-bottom: 10px; }
+  .legend span { display: inline-flex; align-items: center; gap: 5px; }
+  .dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; flex: none; }
+
+  /* ===== 記録一覧 ===== */
+  .day-label {
+    font-size: 12px; font-weight: 700; color: var(--muted);
+    margin: 18px 0 6px; padding-left: 2px; letter-spacing: .08em;
+  }
+  .records { display: flex; flex-direction: column; gap: 8px; }
+  .rec {
+    position: relative;
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-left: 5px solid var(--staff-color, #999);
+    border-radius: 10px;
+    padding: 10px 12px 10px 12px;
+    transition: background .25s, box-shadow .25s, transform .25s, opacity .4s;
+  }
+  .rec-meta { display: flex; flex-wrap: wrap; gap: 4px 10px; font-size: 12px; color: var(--muted); align-items: center; }
+  .rec-staff { font-weight: 700; color: var(--staff-color); }
+  .rec-resident { font-weight: 700; color: var(--ink); }
+  .rec-text { margin-top: 3px; font-size: 15px; }
+  .rec.scanning { box-shadow: 0 0 0 2px #9aa3d8 inset; background: #f0f2ff; }
+  .rec.hit {
+    background: #fff7e3;
+    box-shadow: 0 0 0 2px var(--glow), 0 0 18px rgba(255, 196, 80, .65);
+    transform: scale(1.01);
+  }
+  .rec.hit::after {
+    content: "つながり"; position: absolute; top: 8px; right: 10px;
+    font-size: 11px; font-weight: 700; color: #8a5a00;
+    background: var(--glow); border-radius: 999px; padding: 0 8px;
+  }
+  body.night .rec:not(.hit):not(.scanning) { opacity: .45; }
+
+  /* ===== 横断ボタン ===== */
+  .scan-bar {
+    position: sticky; bottom: 46px; z-index: 20;
+    padding: 12px 0 10px;
+    background: linear-gradient(to top, var(--bg) 70%, rgba(246,243,238,0));
+  }
+  .btn-primary {
+    width: 100%;
+    background: var(--night); color: #fff;
+    border: none; border-radius: 999px;
+    padding: 15px 20px; font-size: 17px; font-weight: 700; letter-spacing: .1em;
+    box-shadow: 0 6px 18px rgba(30,35,64,.3);
+  }
+  .btn-primary:disabled { opacity: .7; cursor: default; }
+  .btn-secondary {
+    background: var(--surface); color: var(--ink);
+    border: 1px solid var(--line); border-radius: 999px;
+    padding: 10px 18px; font-size: 14px;
+  }
+  .scan-status { text-align: center; font-size: 13px; color: var(--muted); min-height: 1.6em; margin-top: 6px; }
+
+  /* 夜の演出オーバーレイ */
+  .night-veil {
+    position: fixed; inset: 0; pointer-events: none; z-index: 5;
+    background: radial-gradient(ellipse at top, rgba(30,35,64,.0), rgba(30,35,64,.18));
+    opacity: 0; transition: opacity .6s;
+  }
+  body.night .night-veil { opacity: 1; }
+
+  /* ===== 申し送り ===== */
+  .handoff-head {
+    margin-top: 24px;
+    font-size: 13px; color: var(--muted); letter-spacing: .08em;
+  }
+  .handoff-head b { color: var(--ink); }
+  .person-card {
+    margin-top: 10px;
+    background: var(--surface);
+    border-radius: var(--radius);
+    border: 2px solid var(--accent);
+    padding: 20px 18px 18px;
+    box-shadow: 0 8px 24px rgba(194,65,12,.12);
+  }
+  .person-card + .person-card { margin-top: 28px; }
+  .person-label {
+    display: inline-block; font-size: 12px; font-weight: 700; color: #fff;
+    background: var(--accent); border-radius: 999px; padding: 2px 12px; letter-spacing: .08em;
+  }
+  .person-card.secondary { border-color: #d9a383; }
+  .person-card.secondary .person-label { background: #b86b45; }
+  .person-name { font-size: 34px; font-weight: 800; margin: 8px 0 0; letter-spacing: .06em; line-height: 1.3; }
+  .person-name small { display: block; font-size: 14px; font-weight: 400; color: var(--muted); letter-spacing: 0; }
+  .person-reason { font-size: 14px; color: var(--muted); margin-top: 6px; }
+
+  .chain-title, .check-title {
+    font-size: 14px; font-weight: 700; margin: 22px 0 10px; letter-spacing: .06em;
+  }
+  .chain { position: relative; margin: 0; padding: 0 0 0 26px; list-style: none; }
+  .chain::before {
+    content: ""; position: absolute; left: 8px; top: 14px; bottom: 14px; width: 2px;
+    background: repeating-linear-gradient(to bottom, var(--accent) 0 6px, transparent 6px 10px);
+    transform-origin: top; transform: scaleY(var(--chain-progress, 0));
+    transition: transform .9s ease;
+  }
+  .chain li {
+    position: relative; margin-bottom: 12px;
+    opacity: 0; transform: translateY(6px);
+    transition: opacity .45s, transform .45s;
+  }
+  .chain li.show { opacity: 1; transform: none; }
+  .chain li::before {
+    content: ""; position: absolute; left: -24px; top: 14px;
+    width: 14px; height: 14px; border-radius: 50%;
+    background: var(--surface); border: 3px solid var(--staff-color, var(--accent));
+  }
+  .quote {
+    margin: 0; padding: 10px 12px;
+    background: #faf8f4; border-radius: 10px;
+    border-left: 4px solid var(--staff-color, var(--accent));
+  }
+  .quote q { font-size: 15.5px; quotes: "「" "」"; }
+  .quote cite {
+    display: block; font-style: normal; font-size: 12px; color: var(--muted); margin-top: 4px;
+  }
+  .quote cite b { color: var(--staff-color); }
+
+  .checks { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+  .checks li {
+    display: flex; gap: 10px; align-items: flex-start;
+    background: var(--accent-soft); border-radius: 10px; padding: 10px 12px; font-size: 15.5px;
+  }
+  .checks li::before {
+    content: ""; flex: none; width: 18px; height: 18px; margin-top: 4px;
+    border: 2px solid var(--accent); border-radius: 4px; background: #fff;
+  }
+  .no-diagnosis {
+    margin-top: 14px; font-size: 12.5px; color: var(--muted);
+    border-top: 1px dashed var(--line); padding-top: 10px;
+  }
+  .not-flagged {
+    margin-top: 22px; font-size: 13px; color: var(--muted);
+    background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px;
+  }
+  .handoff-actions { display: flex; gap: 8px; flex-wrap: wrap; margin: 22px 0 10px; }
+  .empty-result {
+    margin-top: 16px; padding: 18px; background: var(--surface); border-radius: var(--radius);
+    border: 1px solid var(--line);
+  }
+
+  /* ===== 設定 ===== */
+  .settings {
+    background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius);
+    padding: 16px; margin-top: 18px;
+  }
+  .settings h3 { margin: 0 0 6px; font-size: 16px; }
+  .settings p { font-size: 13px; color: var(--muted); margin: 6px 0; }
+  .field { margin-top: 12px; }
+  .field label { display: block; font-size: 13px; font-weight: 700; margin-bottom: 4px; }
+  .field input, .field select {
+    width: 100%; font: inherit; font-size: 16px;
+    padding: 10px 12px; border: 1px solid var(--line); border-radius: 10px; background: #fff;
+  }
+  .row-btns { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; }
+  .key-state { font-size: 13px; margin-top: 10px; }
+  .error-box {
+    background: #fdecec; border: 1px solid #e8a3a3; color: #8a1f1f;
+    border-radius: 10px; padding: 10px 12px; font-size: 13.5px; margin-top: 12px;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { transition: none !important; animation: none !important; }
+  }
+</style>
+</head>
+<body>
+<div class="night-veil" aria-hidden="true"></div>
+
+<div class="wrap">
+  <header class="top">
+    <div class="brand">
+      <h1>行間</h1>
+      <span class="sub">翌朝、まず会いに行く人</span>
+    </div>
+    <div class="mode-row">
+      <span id="modeBadge" class="mode-badge demo">デモモード</span>
+      <button class="link-btn" id="openSettings" type="button">Gemini接続設定</button>
+    </div>
+  </header>
+
+  <!-- ===== 1. 記録一覧 ===== -->
+  <section id="screen-records" class="screen active" aria-label="記録一覧">
+    <div class="lead">
+      <span>5人の職員が5日間で書いた7行。</span>
+      <span>誰も間違っていない。</span>
+      <span>でも誰もつなげられなかった。</span>
+      <span class="dim">夜のあいだにAIが記録を横断し、翌朝「まず会いに行く人」を申し送ります。</span>
+    </div>
+    <ul class="principles" aria-label="このアプリの約束">
+      <li>診断しません</li>
+      <li>引用は記録の原文のまま</li>
+      <li>申し送りは最大2人</li>
+      <li>合成データのデモ</li>
+    </ul>
+
+    <h2 class="sec">記録一覧 <small id="recCount"></small></h2>
+    <div class="legend" id="legend"></div>
+    <div id="recordList"></div>
+
+    <div class="scan-bar">
+      <button class="btn-primary" id="scanBtn" type="button">夜の横断をはじめる</button>
+      <div class="scan-status" id="scanStatus" aria-live="polite"></div>
+    </div>
+  </section>
+
+  <!-- ===== 3. 申し送り ===== -->
+  <section id="screen-handoff" class="screen" aria-label="翌朝の申し送り">
+    <div class="handoff-head" id="handoffHead"></div>
+    <div id="handoffBody"></div>
+    <div class="handoff-actions">
+      <button class="btn-secondary" id="backBtn" type="button">← 記録一覧に戻る</button>
+    </div>
+  </section>
+
+  <!-- ===== 4. Gemini接続設定 ===== -->
+  <section id="screen-settings" class="screen" aria-label="Gemini接続設定">
+    <div class="settings">
+      <h3>Gemini接続設定（任意）</h3>
+      <p>APIキーが未入力のときは、内蔵シナリオで動く<b>デモモード</b>です。キーを入力すると、Gemini APIで実際に記録を横断する<b>本番モード</b>になります。</p>
+      <p>キーはこの端末のブラウザ（localStorage）にだけ保存され、画面には表示しません。記録データは合成データです。実在の個人データは入力しないでください。</p>
+
+      <div class="field">
+        <label for="apiKey">Gemini APIキー</label>
+        <input id="apiKey" type="password" autocomplete="off" spellcheck="false" placeholder="キーを貼り付けて保存">
+      </div>
+      <div class="field">
+        <label for="modelSel">モデル</label>
+        <select id="modelSel">
+          <option value="gemini-2.5-flash">gemini-2.5-flash</option>
+          <option value="gemini-2.5-pro">gemini-2.5-pro</option>
+          <option value="gemini-2.0-flash">gemini-2.0-flash</option>
+        </select>
+      </div>
+      <div class="key-state" id="keyState"></div>
+      <div class="row-btns">
+        <button class="btn-secondary" id="saveKey" type="button">保存</button>
+        <button class="btn-secondary" id="clearKey" type="button">キーを削除してデモモードへ</button>
+        <button class="btn-secondary" id="closeSettings" type="button">閉じる</button>
+      </div>
+    </div>
+  </section>
+</div>
+
+<div class="synthetic-banner" role="note">
+  <strong>合成データによるデモ</strong>：登場する利用者・職員・記録はすべて架空（仮名）です。本アプリは診断を行いません。
+</div>
+
+<script>
+(function () {
+  "use strict";
+
+  /* =========================================================
+   * 合成データ（実在の個人データは含まない）
+   * ========================================================= */
+  var STAFF = {
+    A: { name: "職員A", color: "var(--staff-a)" },
+    B: { name: "職員B", color: "var(--staff-b)" },
+    C: { name: "職員C", color: "var(--staff-c)" },
+    D: { name: "職員D", color: "var(--staff-d)" },
+    E: { name: "職員E", color: "var(--staff-e)" }
+  };
+
+  var RESIDENTS = {
+    tanaka: { name: "田中ハル", age: 84, sex: "女性" },
+    sato:   { name: "佐藤マサ", age: 88, sex: "女性" },
+    suzuki: { name: "鈴木ゲン", age: 79, sex: "男性" },
+    yamada: { name: "山田キヨ", age: 91, sex: "女性" }
+  };
+
+  var SLOT_ORDER = { "朝": 0, "昼": 1, "夜": 2 };
+
+  // 田中ハルさんの7行は仕様どおり原文のまま。他3名は対照（フラグが立たない日常記録）。
+  var RECORDS = [
+    { id: "r01", day: 1, slot: "朝", staff: "A", resident: "tanaka", text: "朝食は半分ほど残された。本人は『お腹が空かない』と" },
+    { id: "r02", day: 1, slot: "朝", staff: "C", resident: "sato",   text: "朝食は全量摂取。食後に新聞を読まれていた" },
+    { id: "r03", day: 1, slot: "昼", staff: "D", resident: "suzuki", text: "午後のレクで輪投げに参加。笑顔が多かった" },
+    { id: "r04", day: 1, slot: "夜", staff: "B", resident: "tanaka", text: "夜間、トイレに2回起きている様子" },
+    { id: "r05", day: 1, slot: "夜", staff: "B", resident: "yamada", text: "21時に就寝。朝まで良眠" },
+
+    { id: "r06", day: 2, slot: "朝", staff: "E", resident: "yamada", text: "ご家族と電話で話され、うれしそうだった" },
+    { id: "r07", day: 2, slot: "昼", staff: "C", resident: "tanaka", text: "今日は会話が少なめ。食堂ではなく自室で過ごされた" },
+    { id: "r08", day: 2, slot: "昼", staff: "A", resident: "suzuki", text: "昼食は全量摂取。お茶もおかわりされた" },
+    { id: "r09", day: 2, slot: "夜", staff: "D", resident: "sato",   text: "入浴後、ドライヤーを自分で使われた。湯加減ちょうどいいと" },
+
+    { id: "r10", day: 3, slot: "朝", staff: "D", resident: "tanaka", text: "足首に靴下の跡がくっきり残っていた" },
+    { id: "r11", day: 3, slot: "朝", staff: "E", resident: "suzuki", text: "朝の体操に参加。いつも通り冗談を言っていた" },
+    { id: "r12", day: 3, slot: "昼", staff: "A", resident: "yamada", text: "昼食は8割ほど。好きな煮物は完食された" },
+    { id: "r13", day: 3, slot: "夜", staff: "B", resident: "tanaka", text: "水分をあまり取られていない。お茶を勧めたが一口だけ" },
+
+    { id: "r14", day: 4, slot: "朝", staff: "C", resident: "sato",   text: "居室の花の水やりを自分でされていた" },
+    { id: "r15", day: 4, slot: "昼", staff: "E", resident: "tanaka", text: "歩行時、少しふらつく様子があったが転倒はなし" },
+    { id: "r16", day: 4, slot: "昼", staff: "D", resident: "yamada", text: "書道クラブに参加。『寿』の字を書かれた" },
+    { id: "r17", day: 4, slot: "夜", staff: "B", resident: "suzuki", text: "22時就寝。夜間の巡視時は良眠" },
+
+    { id: "r18", day: 5, slot: "朝", staff: "A", resident: "tanaka", text: "朝食はほぼ手つかず。『疲れた』と横になっている" },
+    { id: "r19", day: 5, slot: "朝", staff: "C", resident: "sato",   text: "朝食全量。他の利用者さんと天気の話をされていた" },
+    { id: "r20", day: 5, slot: "朝", staff: "E", resident: "yamada", text: "起床時から機嫌よく、歌を口ずさんでいた" }
+  ];
+
+  // 内蔵デモシナリオの申し送り（観察の促しのみ。原因や病名には触れない）
+  var DEMO_RESULT = {
+    alerts: [{
+      resident: "tanaka",
+      record_ids: ["r01", "r04", "r07", "r10", "r13", "r15", "r18"],
+      reason: "5人の職員が別々の日に書いた7つの記録が、同じ方の数日間の変化としてつながりました。",
+      check_points: [
+        "水分をどれくらい取れているか",
+        "足のむくみの様子",
+        "歩くときのふらつき"
+      ]
+    }]
+  };
+
+  /* =========================================================
+   * 本番モード用プロンプト（絶対ルールを組み込む）
+   * ========================================================= */
+  var SYSTEM_RULES = [
+    "あなたは介護施設の夜勤帯で、複数の職員が書いた自由記述の記録を横断して読み、翌朝の申し送りを作る補助役です。",
+    "目的は『今日まず確認すべき人』を職員に知らせ、対面での観察につなげることだけです。",
+    "",
+    "【絶対ルール】",
+    "1. 診断しない。病名・疾患名・病状・原因を推測したり断定したりする語を一切書かない（例：脱水、心不全、感染症、認知症、うつ、骨折、〜の疑い、〜の可能性、〜が原因 など）。",
+    "2. 根拠は記録の原文をそのまま使う。要約・言い換え・創作をしない。根拠は必ず入力の記録ID（record_ids）で示す。",
+    "3. アラートは最大2人まで。原則1人。複数の職員・複数の日にまたがる記録がつながる場合にのみ挙げる。該当がなければ空配列にする。",
+    "4. 記録に書かれていないことを推測で書かない。根拠のない推測をしない。",
+    "5. check_points は『職員が見て確かめる観察ポイント』を短い言葉で最大3つ。『〜の様子』『〜できているか』のような観察の促しのみとし、原因・病名・評価・処置の指示を書かない。",
+    "6. reason は、どの記録どうしがつながったかを事実だけで1文で述べる。病状・原因に触れない。",
+    "",
+    "【出力】次のJSONだけを返す。",
+    '{"alerts":[{"resident_id":"<利用者ID>","record_ids":["<記録ID>",...],"reason":"<1文>","check_points":["<観察ポイント>",...]}]}'
+  ].join("\n");
+
+  // 出力の安全側チェック：診断語・推測語を含む項目は表示しない
+  var FORBIDDEN = /(脱水|心不全|腎|肝|感染|肺炎|認知症|せん妄|うつ|鬱|骨折|浮腫|貧血|糖尿|脳|梗塞|出血|癌|がん|病|症|疾患|障害|診断|疑い|可能性|原因|悪化|治療|投薬|服薬|受診)/;
+
+  /* =========================================================
+   * ユーティリティ
+   * ========================================================= */
+  var $ = function (id) { return document.getElementById(id); };
+  var KEY_STORE = "gyoukan.geminiKey";
+  var MODEL_STORE = "gyoukan.geminiModel";
+
+  function storeGet(k) { try { return window.localStorage.getItem(k) || ""; } catch (e) { return ""; } }
+  function storeSet(k, v) { try { window.localStorage.setItem(k, v); return true; } catch (e) { return false; } }
+  function storeDel(k) { try { window.localStorage.removeItem(k); } catch (e) { /* noop */ } }
+
+  function el(tag, attrs, children) {
+    var n = document.createElement(tag);
+    if (attrs) {
+      Object.keys(attrs).forEach(function (k) {
+        if (k === "class") n.className = attrs[k];
+        else if (k === "text") n.textContent = attrs[k];
+        else if (k === "style") n.setAttribute("style", attrs[k]);
+        else n.setAttribute(k, attrs[k]);
+      });
+    }
+    (children || []).forEach(function (c) {
+      if (c == null) return;
+      n.appendChild(typeof c === "string" ? document.createTextNode(c) : c);
+    });
+    return n;
+  }
+  function wait(ms) { return new Promise(function (r) { setTimeout(r, ms); }); }
+  function reducedMotion() {
+    return window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  }
+  function sortedRecords() {
+    return RECORDS.slice().sort(function (a, b) {
+      return a.day - b.day || SLOT_ORDER[a.slot] - SLOT_ORDER[b.slot] || a.id.localeCompare(b.id);
+    });
+  }
+  function recById(id) {
+    for (var i = 0; i < RECORDS.length; i++) if (RECORDS[i].id === id) return RECORDS[i];
+    return null;
+  }
+  function residentLabel(rid) {
+    var r = RESIDENTS[rid];
+    return r ? r.name + "さん" : rid;
+  }
+  function isLive() { return !!storeGet(KEY_STORE); }
+
+  /* =========================================================
+   * 画面切り替え
+   * ========================================================= */
+  var lastScreen = "screen-records";
+  function show(id) {
+    ["screen-records", "screen-handoff", "screen-settings"].forEach(function (s) {
+      $(s).classList.toggle("active", s === id);
+    });
+    if (id !== "screen-settings") lastScreen = id;
+    window.scrollTo(0, 0);
+  }
+
+  function renderMode() {
+    var b = $("modeBadge");
+    if (isLive()) {
+      b.className = "mode-badge live";
+      b.textContent = "本番モード（Gemini）";
+    } else {
+      b.className = "mode-badge demo";
+      b.textContent = "デモモード（内蔵シナリオ）";
+    }
+  }
+
+  /* =========================================================
+   * 1. 記録一覧
+   * ========================================================= */
+  function renderLegend() {
+    var lg = $("legend");
+    lg.innerHTML = "";
+    Object.keys(STAFF).forEach(function (k) {
+      lg.appendChild(el("span", null, [
+        el("i", { class: "dot", style: "background:" + STAFF[k].color }),
+        STAFF[k].name
+      ]));
+    });
+  }
+
+  function renderRecords() {
+    var list = $("recordList");
+    list.innerHTML = "";
+    var curDay = null, group = null;
+    sortedRecords().forEach(function (r) {
+      if (r.day !== curDay) {
+        curDay = r.day;
+        list.appendChild(el("div", { class: "day-label", text: r.day + "日目" }));
+        group = el("div", { class: "records" });
+        list.appendChild(group);
+      }
+      var s = STAFF[r.staff];
+      group.appendChild(el("article", {
+        class: "rec", "data-id": r.id, style: "--staff-color:" + s.color
+      }, [
+        el("div", { class: "rec-meta" }, [
+          el("span", { text: r.day + "日目 " + r.slot }),
+          el("span", { class: "rec-staff", text: s.name }),
+          el("span", { class: "rec-resident", text: residentLabel(r.resident) })
+        ]),
+        el("div", { class: "rec-text", text: r.text })
+      ]));
+    });
+    $("recCount").textContent = "全" + RECORDS.length + "件・" + Object.keys(RESIDENTS).length + "名・5日間";
+  }
+
+  function clearHighlights() {
+    document.body.classList.remove("night");
+    Array.prototype.forEach.call(document.querySelectorAll(".rec"), function (n) {
+      n.classList.remove("hit", "scanning");
+    });
+  }
+
+  /* =========================================================
+   * 2. 夜の横断
+   * ========================================================= */
+  var running = false;
+
+  async function runScan() {
+    if (running) return;
+    running = true;
+    var btn = $("scanBtn"), status = $("scanStatus");
+    btn.disabled = true;
+    clearHighlights();
+    document.body.classList.add("night");
+
+    var live = isLive();
+    var resultPromise = live ? analyzeWithGemini() : Promise.resolve(DEMO_RESULT);
+    // 失敗時もアニメーションの後で扱えるよう捕捉しておく
+    var settled = resultPromise.then(function (v) { return { ok: true, v: v }; },
+                                     function (e) { return { ok: false, e: e }; });
+
+    var fast = reducedMotion();
+    var rows = Array.prototype.slice.call(document.querySelectorAll(".rec"));
+
+    // 走査：全行を順に読む
+    status.textContent = live ? "Geminiが記録を読んでいます…" : "夜のあいだに記録を読んでいます…";
+    btn.textContent = "横断中…";
+    for (var i = 0; i < rows.length; i++) {
+      rows[i].classList.add("scanning");
+      rows[i].scrollIntoView({ block: "center", behavior: fast ? "auto" : "smooth" });
+      await wait(fast ? 0 : 170);
+      rows[i].classList.remove("scanning");
+    }
+
+    if (live) status.textContent = "Geminiの応答を待っています…";
+    var res = await settled;
+    var result;
+    if (!res.ok) {
+      running = false;
+      btn.disabled = false;
+      btn.textContent = "夜の横断をはじめる";
+      document.body.classList.remove("night");
+      status.textContent = "";
+      renderError(res.e);
+      return;
+    }
+    result = res.v;
+
+    // つながった行を順に光らせる
+    status.textContent = "つながる記録を見つけています…";
+    var ids = [];
+    result.alerts.forEach(function (a) { ids = ids.concat(a.record_ids); });
+    for (var j = 0; j < ids.length; j++) {
+      var row = document.querySelector('.rec[data-id="' + ids[j] + '"]');
+      if (!row) continue;
+      row.classList.add("hit");
+      row.scrollIntoView({ block: "center", behavior: fast ? "auto" : "smooth" });
+      await wait(fast ? 0 : 650);
+    }
+    status.textContent = ids.length ? "翌朝の申し送りをまとめています…" : "記録を読み終えました";
+    await wait(fast ? 0 : 1100);
+
+    renderHandoff(result, live);
+    document.body.classList.remove("night");
+    show("screen-handoff");
+    animateChains();
+
+    running = false;
+    btn.disabled = false;
+    btn.textContent = "もう一度、夜の横断をする";
+    status.textContent = "";
+  }
+
+  /* =========================================================
+   * 3. 翌朝の申し送り
+   * ========================================================= */
+  function renderHandoff(result, live) {
+    $("handoffHead").innerHTML = "";
+    $("handoffHead").appendChild(el("div", null, [
+      "6日目 朝の申し送り ・ ",
+      el("b", { text: live ? "本番モード（Gemini）" : "デモモード（内蔵シナリオ）" })
+    ]));
+
+    var body = $("handoffBody");
+    body.innerHTML = "";
+
+    if (!result.alerts.length) {
+      body.appendChild(el("div", { class: "empty-result" }, [
+        el("p", { text: "今朝、とくにつながりの見つかった方はいませんでした。" }),
+        el("p", { class: "no-diagnosis", text: "これは「問題がない」という判断ではありません。いつも通りの観察をお願いします。" })
+      ]));
+      return;
+    }
+
+    result.alerts.forEach(function (a, idx) {
+      var res = RESIDENTS[a.resident];
+      var recs = a.record_ids.map(recById).filter(Boolean).sort(function (x, y) {
+        return x.day - y.day || SLOT_ORDER[x.slot] - SLOT_ORDER[y.slot];
+      });
+      var staffCount = {};
+      recs.forEach(function (r) { staffCount[r.staff] = 1; });
+      var days = {};
+      recs.forEach(function (r) { days[r.day] = 1; });
+
+      var chain = el("ol", { class: "chain" });
+      recs.forEach(function (r) {
+        var s = STAFF[r.staff];
+        chain.appendChild(el("li", { style: "--staff-color:" + s.color }, [
+          el("blockquote", { class: "quote" }, [
+            el("q", { text: r.text }),
+            el("cite", null, [r.day + "日目 " + r.slot + " ／ ", el("b", { text: s.name })])
+          ])
+        ]));
+      });
+
+      var checks = el("ul", { class: "checks" });
+      a.check_points.forEach(function (c) { checks.appendChild(el("li", { text: c })); });
+
+      body.appendChild(el("article", { class: "person-card" + (idx > 0 ? " secondary" : "") }, [
+        el("span", { class: "person-label", text: idx === 0 ? "今日まず確認すべき人" : "あわせて確認したい人" }),
+        el("div", { class: "person-name" }, [
+          residentLabel(a.resident),
+          el("small", { text: res ? "（" + res.age + "歳・" + res.sex + "・仮名）" : "" })
+        ]),
+        a.reason ? el("div", { class: "person-reason", text: a.reason }) : null,
+        el("div", { class: "person-reason", text:
+          Object.keys(staffCount).length + "人の職員 ・ " + Object.keys(days).length + "日間 ・ " + recs.length + "件の記録" }),
+        el("h3", { class: "chain-title", text: "つながった記録（原文のまま）" }),
+        chain,
+        el("h3", { class: "check-title", text: "確認してほしいこと" }),
+        checks,
+        el("p", { class: "no-diagnosis", text:
+          "このアプリは診断を行いません。原因の判断や対応は、ご本人の様子を直接確かめたうえで、施設の手順に沿って専門職と相談してください。" })
+      ]));
+    });
+
+    var flagged = {};
+    result.alerts.forEach(function (a) { flagged[a.resident] = 1; });
+    var others = Object.keys(RESIDENTS).filter(function (k) { return !flagged[k]; }).map(residentLabel);
+    if (others.length) {
+      body.appendChild(el("div", { class: "not-flagged", text:
+        "ほかの方（" + others.join("、") + "）の記録からは、今朝とくに申し送るつながりは見つかりませんでした。いつも通りの観察をお願いします。" }));
+    }
+  }
+
+  function animateChains() {
+    var fast = reducedMotion();
+    Array.prototype.forEach.call(document.querySelectorAll(".chain"), function (ch) {
+      var items = ch.querySelectorAll("li");
+      requestAnimationFrame(function () { ch.style.setProperty("--chain-progress", "1"); });
+      Array.prototype.forEach.call(items, function (li, i) {
+        setTimeout(function () { li.classList.add("show"); }, fast ? 0 : 150 + i * 160);
+      });
+    });
+  }
+
+  function renderError(err) {
+    var body = $("handoffBody");
+    $("handoffHead").textContent = "本番モード（Gemini）";
+    body.innerHTML = "";
+    body.appendChild(el("div", { class: "error-box", text:
+      "Geminiでの横断に失敗しました：" + (err && err.message ? err.message : String(err)) }));
+    var demoBtn = el("button", { class: "btn-secondary", type: "button", text: "内蔵シナリオ（デモ）で表示する" });
+    demoBtn.addEventListener("click", function () {
+      renderHandoff(DEMO_RESULT, false);
+      animateChains();
+    });
+    body.appendChild(el("div", { class: "handoff-actions" }, [demoBtn]));
+    show("screen-handoff");
+  }
+
+  /* =========================================================
+   * 4. Gemini（本番モード）
+   * ========================================================= */
+  function buildUserPrompt() {
+    var lines = ["【利用者】"];
+    Object.keys(RESIDENTS).forEach(function (k) {
+      var r = RESIDENTS[k];
+      lines.push(k + "：" + r.name + "さん（" + r.age + "歳・" + r.sex + "）");
+    });
+    lines.push("", "【記録】（ID｜日｜時間帯｜記録者｜利用者ID｜本文）");
+    sortedRecords().forEach(function (r) {
+      lines.push([r.id, r.day + "日目", r.slot, STAFF[r.staff].name, r.resident, r.text].join("｜"));
+    });
+    lines.push("", "今日は6日目の朝です。上の記録だけを根拠に、絶対ルールに従ってJSONを返してください。");
+    return lines.join("\n");
+  }
+
+  async function analyzeWithGemini() {
+    var key = storeGet(KEY_STORE);
+    var model = storeGet(MODEL_STORE) || "gemini-2.5-flash";
+    var url = "https://generativelanguage.googleapis.com/v1beta/models/" + encodeURIComponent(model) + ":generateContent";
+    var resp = await fetch(url, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "x-goog-api-key": key },
+      body: JSON.stringify({
+        systemInstruction: { parts: [{ text: SYSTEM_RULES }] },
+        contents: [{ role: "user", parts: [{ text: buildUserPrompt() }] }],
+        generationConfig: { temperature: 0.2, responseMimeType: "application/json" }
+      })
+    });
+    if (!resp.ok) {
+      var msg = "HTTP " + resp.status;
+      try { var j = await resp.json(); if (j.error && j.error.message) msg += "：" + j.error.message; } catch (e) { /* noop */ }
+      throw new Error(msg);
+    }
+    var data = await resp.json();
+    var text = "";
+    try {
+      text = data.candidates[0].content.parts.map(function (p) { return p.text || ""; }).join("");
+    } catch (e) {
+      throw new Error("応答の形式が想定と異なります");
+    }
+    var parsed;
+    try {
+      parsed = JSON.parse(text.replace(/^```(?:json)?\s*|\s*```$/g, ""));
+    } catch (e) {
+      throw new Error("応答をJSONとして読めませんでした");
+    }
+    return sanitize(parsed);
+  }
+
+  // モデル出力を絶対ルールに沿って検証・整形する
+  function sanitize(parsed) {
+    var raw = (parsed && Array.isArray(parsed.alerts)) ? parsed.alerts : [];
+    var out = [];
+    raw.forEach(function (a) {
+      if (out.length >= 2) return;                       // 最大2人
+      var rid = a && (a.resident_id || a.resident);
+      if (!RESIDENTS[rid]) return;
+      if (out.some(function (o) { return o.resident === rid; })) return;
+      // 引用は入力の記録IDに限定 → 本文はアプリ側で原文を表示する
+      var ids = (Array.isArray(a.record_ids) ? a.record_ids : []).filter(function (id, i, arr) {
+        var r = recById(id);
+        return r && r.resident === rid && arr.indexOf(id) === i;
+      });
+      if (!ids.length) return;
+      var checks = (Array.isArray(a.check_points) ? a.check_points : [])
+        .filter(function (c) { return typeof c === "string" && c.trim() && !FORBIDDEN.test(c); })
+        .slice(0, 3);
+      if (!checks.length) checks = ["ご本人の今朝の様子"];
+      var reason = (typeof a.reason === "string" && !FORBIDDEN.test(a.reason)) ? a.reason : "";
+      out.push({ resident: rid, record_ids: ids, reason: reason, check_points: checks });
+    });
+    return { alerts: out };
+  }
+
+  function renderKeyState() {
+    var saved = !!storeGet(KEY_STORE);
+    $("keyState").textContent = saved
+      ? "✓ APIキーは保存済みです（表示はしません）。本番モードで動作します。"
+      : "APIキー未設定：デモモードで動作します。";
+    $("modelSel").value = storeGet(MODEL_STORE) || "gemini-2.5-flash";
+    renderMode();
+  }
+
+  /* =========================================================
+   * 初期化
+   * ========================================================= */
+  function init() {
+    renderLegend();
+    renderRecords();
+    renderKeyState();
+
+    $("scanBtn").addEventListener("click", runScan);
+    $("backBtn").addEventListener("click", function () { clearHighlights(); show("screen-records"); });
+    $("openSettings").addEventListener("click", function () { renderKeyState(); show("screen-settings"); });
+    $("closeSettings").addEventListener("click", function () { show(lastScreen); });
+    $("saveKey").addEventListener("click", function () {
+      var v = $("apiKey").value.trim();
+      storeSet(MODEL_STORE, $("modelSel").value);
+      if (v) {
+        if (!storeSet(KEY_STORE, v)) { $("keyState").textContent = "この環境ではキーを保存できませんでした。"; return; }
+      }
+      $("apiKey").value = "";   // 入力欄にも残さない
+      renderKeyState();
+    });
+    $("clearKey").addEventListener("click", function () {
+      storeDel(KEY_STORE);
+      $("apiKey").value = "";
+      renderKeyState();
+    });
+  }
+
+  init();
+
+  // 動作確認用の最小限のフック
+  window.__gyoukan = { RECORDS: RECORDS, DEMO_RESULT: DEMO_RESULT, sanitize: sanitize, runScan: runScan };
+})();
+</script>
+</body>
+</html>
