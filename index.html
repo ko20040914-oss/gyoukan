@@ -522,7 +522,7 @@
   <section id="screen-settings" class="screen" aria-label="Gemini接続設定">
     <div class="settings">
       <h3>Gemini接続設定（任意）</h3>
-      <p>APIキーが未入力のときは、内蔵シナリオで動く<b>デモモード</b>です。キーを入力すると、Gemini APIで実際に記録を横断する<b>本番モード</b>になります。</p>
+      <p>APIキーが未入力のときは、内蔵シナリオで動く<b>デモモード</b>です。キーを入力すると、Gemini API（モデル：Gemini 4 Argon）で実際に記録を横断する<b>本番モード</b>になります。</p>
       <p>キーはこの端末のブラウザ（localStorage）にだけ保存され、画面には表示しません。記録データは合成データです。実在の個人データは入力しないでください。</p>
 
       <div class="field">
@@ -531,11 +531,10 @@
       </div>
       <div class="field">
         <label for="modelSel">モデル</label>
-        <select id="modelSel">
-          <option value="gemini-2.5-flash">gemini-2.5-flash</option>
-          <option value="gemini-2.5-pro">gemini-2.5-pro</option>
-          <option value="gemini-2.0-flash">gemini-2.0-flash</option>
+        <select id="modelSel" disabled>
+          <option value="gemini-4-argon">Gemini 4 Argon（gemini-4-argon）</option>
         </select>
+        <div class="field-hint">本番モードは Gemini 4 Argon（APIモデルID：gemini-4-argon）で動きます。</div>
       </div>
       <div class="key-state" id="keyState"></div>
       <div class="row-btns">
@@ -743,6 +742,9 @@
   var $ = function (id) { return document.getElementById(id); };
   var KEY_STORE = "gyoukan.geminiKey";
   var MODEL_STORE = "gyoukan.geminiModel";
+  // 使用モデルは Gemini 4 Argon に固定（APIモデルID：gemini-4-argon）。古いモデルへは切り替えない
+  var GEMINI_MODEL = "gemini-4-argon";
+  var GEMINI_MODEL_LABEL = "Gemini 4 Argon";
 
   function storeGet(k) { try { return window.localStorage.getItem(k) || ""; } catch (e) { return ""; } }
   function storeSet(k, v) { try { window.localStorage.setItem(k, v); return true; } catch (e) { return false; } }
@@ -801,7 +803,7 @@
     var b = $("modeBadge");
     if (isLive()) {
       b.className = "mode-badge live";
-      b.textContent = "本番モード（Gemini）";
+      b.textContent = "本番モード（" + GEMINI_MODEL_LABEL + "）";
     } else {
       b.className = "mode-badge demo";
       b.textContent = "デモモード（内蔵シナリオ）";
@@ -1000,7 +1002,7 @@
     var hasAdded = userData.residents.length > 0 || userData.records.length > 0;
 
     // 走査：全行を順に読む
-    status.textContent = live ? "Geminiが記録を読んでいます…"
+    status.textContent = live ? GEMINI_MODEL_LABEL + "が記録を読んでいます…"
       : (hasAdded ? "デモ再生中（初期データのみ。追加分は横断しません）…" : "夜のあいだに記録を読んでいます…");
     btn.textContent = "横断中…";
     for (var i = 0; i < rows.length; i++) {
@@ -1010,7 +1012,7 @@
       rows[i].classList.remove("scanning");
     }
 
-    if (live) status.textContent = "Geminiの応答を待っています…";
+    if (live) status.textContent = GEMINI_MODEL_LABEL + "の応答を待っています…";
     var res = await settled;
     var result;
     if (!res.ok) {
@@ -1056,7 +1058,7 @@
     $("handoffHead").innerHTML = "";
     $("handoffHead").appendChild(el("div", null, [
       "6日目 朝の申し送り ・ ",
-      el("b", { text: live ? "本番モード（Gemini）" : "デモモード（内蔵シナリオ）" })
+      el("b", { text: live ? "本番モード（" + GEMINI_MODEL_LABEL + "）" : "デモモード（内蔵シナリオ）" })
     ]));
 
     var body = $("handoffBody");
@@ -1139,7 +1141,7 @@
 
   function renderError(err) {
     var body = $("handoffBody");
-    $("handoffHead").textContent = "本番モード（Gemini）";
+    $("handoffHead").textContent = "本番モード（" + GEMINI_MODEL_LABEL + "）";
     body.innerHTML = "";
     body.appendChild(el("div", { class: "error-box", text:
       "Geminiでの横断に失敗しました：" + (err && err.message ? err.message : String(err)) }));
@@ -1172,7 +1174,7 @@
 
   async function analyzeWithGemini() {
     var key = storeGet(KEY_STORE);
-    var model = storeGet(MODEL_STORE) || "gemini-2.5-flash";
+    var model = GEMINI_MODEL;
     var url = "https://generativelanguage.googleapis.com/v1beta/models/" + encodeURIComponent(model) + ":generateContent";
     var resp = await fetch(url, {
       method: "POST",
@@ -1245,7 +1247,7 @@
     $("keyState").textContent = saved
       ? "✓ APIキーは保存済みです（表示はしません）。本番モードで動作します。"
       : "APIキー未設定：デモモードで動作します。";
-    $("modelSel").value = storeGet(MODEL_STORE) || "gemini-2.5-flash";
+    $("modelSel").value = GEMINI_MODEL;
     renderMode();
     renderEntry();
   }
@@ -1254,6 +1256,7 @@
    * 初期化
    * ========================================================= */
   function init() {
+    storeDel(MODEL_STORE);   // 以前の版で保存した古いモデル名は使わないので消しておく
     loadUserData();
     applyUserData();
     renderLegend();
@@ -1271,7 +1274,6 @@
     $("closeSettings").addEventListener("click", function () { show(lastScreen); });
     $("saveKey").addEventListener("click", function () {
       var v = $("apiKey").value.trim();
-      storeSet(MODEL_STORE, $("modelSel").value);
       if (v) {
         if (!storeSet(KEY_STORE, v)) { $("keyState").textContent = "この環境ではキーを保存できませんでした。"; return; }
       }
