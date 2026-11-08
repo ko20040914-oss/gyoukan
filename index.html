@@ -372,7 +372,7 @@ document.getElementById("scanBtn").addEventListener("click", function () {
   var step = 0;
   msg.textContent = msgs[0];
   document.getElementById("scanNote").textContent = "";
-  document.getElementById("handoff").scrollIntoView({ behavior: "smooth", block: "start" });
+  document.getElementById("night").scrollIntoView({ behavior: "smooth", block: "start" });
   var timer = setInterval(function () {
     step++;
     if (step < msgs.length) { msg.textContent = msgs[step]; return; }
