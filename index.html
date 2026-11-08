@@ -72,6 +72,53 @@
     font-size: 13px; padding: 4px;
   }
 
+  /* ===== 目的ブロック ===== */
+  .purpose {
+    margin: 18px 0 0;
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    padding: 20px 18px;
+  }
+  .purpose-kicker { font-size: 12px; font-weight: 700; color: var(--accent); letter-spacing: .12em; }
+  .purpose-lede {
+    margin: 6px 0 0; font-size: 21px; font-weight: 800; line-height: 1.6;
+    letter-spacing: .02em; font-feature-settings: "palt";
+  }
+  .steps { list-style: none; margin: 18px 0 0; padding: 0; display: grid; gap: 8px; grid-template-columns: 1fr; }
+  .steps li {
+    display: flex; gap: 10px; align-items: flex-start;
+    background: #faf8f4; border-radius: 10px; padding: 10px 12px; font-size: 14.5px; line-height: 1.6;
+  }
+  .step-no { flex: none; color: var(--accent); font-weight: 700; font-size: 20px; line-height: 1.2; }
+  .steps small { display: block; color: var(--muted); font-size: 12.5px; }
+  @media (min-width: 600px) {
+    .steps { grid-template-columns: repeat(3, 1fr); }
+    .steps li { flex-direction: column; }
+  }
+  .contrast {
+    margin-top: 16px; display: grid; gap: 8px; align-items: center;
+    grid-template-columns: minmax(0, 1fr) auto minmax(0, .8fr);
+  }
+  .contrast-box { border-radius: 10px; padding: 10px 12px; font-size: 13px; }
+  .contrast-box h4 { margin: 0 0 6px; font-size: 13px; line-height: 1.5; }
+  .contrast-box h4 small { display: block; font-weight: 400; color: var(--muted); font-size: 11.5px; }
+  .contrast-in { background: #faf8f4; border: 1px dashed var(--line); }
+  .contrast-in ol { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 4px; }
+  .contrast-in li {
+    font-size: 12.5px; line-height: 1.5; padding-left: 8px;
+    border-left: 3px solid var(--staff-color, #999);
+  }
+  .contrast-in li span { display: block; font-size: 11px; color: var(--muted); }
+  .contrast-arrow { font-size: 26px; color: var(--accent); font-weight: 700; text-align: center; line-height: 1; }
+  .contrast-out { background: var(--accent-soft); border: 2px solid var(--accent); }
+  .contrast-out .who { font-size: 18px; font-weight: 800; margin-top: 2px; }
+  .contrast-out .one { font-size: 12px; color: var(--muted); }
+  @media (max-width: 479px) {
+    .contrast { grid-template-columns: 1fr; }
+    .contrast-arrow { transform: rotate(90deg); }
+  }
+
   .lead {
     margin: 22px 0 6px;
     padding: 22px 20px;
@@ -290,6 +337,30 @@
 
   <!-- ===== 1. 記録一覧 ===== -->
   <section id="screen-records" class="screen active" aria-label="記録一覧">
+    <!-- ===== 目的ブロック ===== -->
+    <div class="purpose" aria-label="このアプリの目的">
+      <div class="purpose-kicker">このアプリの目的</div>
+      <p class="purpose-lede">バラバラに書かれた介護のメモを、夜のうちにAIが全部読んで、朝いちばんに見に行く人を、理由つきで教える道具です</p>
+      <ol class="steps" aria-label="3ステップの流れ">
+        <li><span class="step-no">①</span><div>職員が別々にメモを書く<small>5人・5日分。1行ずつはただのメモ</small></div></li>
+        <li><span class="step-no">②</span><div>夜、AIが数千行を横断して、つながりを見つける</div></li>
+        <li><span class="step-no">③</span><div>朝、「今日はまずこの人」と、根拠のメモ原文つきで出る</div></li>
+      </ol>
+      <div class="contrast">
+        <div class="contrast-box contrast-in">
+          <h4>バラバラのメモ 7行<small>田中ハルさんのデモ記録から実物をそのまま引用</small></h4>
+          <ol id="purposeQuotes"></ol>
+        </div>
+        <div class="contrast-arrow" aria-hidden="true">→</div>
+        <div class="contrast-box contrast-out">
+          <h4>朝の答え</h4>
+          <div>まず確認すべき人＝</div>
+          <div class="who">田中ハルさん</div>
+          <div class="one">（1名だけ）</div>
+        </div>
+      </div>
+    </div>
+
     <div class="lead">
       <span>5人の職員が5日間で書いた7行。</span>
       <span>誰も間違っていない。</span>
@@ -565,6 +636,18 @@
     $("recCount").textContent = "全" + RECORDS.length + "件・" + Object.keys(RESIDENTS).length + "名・5日間";
   }
 
+  // 目的ブロックの対比：デモデータの原文をそのまま並べる（文言は複製しない）
+  function renderPurposeQuotes() {
+    var ol = $("purposeQuotes");
+    ol.innerHTML = "";
+    DEMO_RESULT.alerts[0].record_ids.map(recById).forEach(function (r) {
+      ol.appendChild(el("li", { style: "--staff-color:" + STAFF[r.staff].color }, [
+        el("span", { text: r.day + "日目 " + r.slot + "／" + STAFF[r.staff].name }),
+        "「" + r.text + "」"
+      ]));
+    });
+  }
+
   function clearHighlights() {
     document.body.classList.remove("night");
     Array.prototype.forEach.call(document.querySelectorAll(".rec"), function (n) {
@@ -832,6 +915,7 @@
   function init() {
     renderLegend();
     renderRecords();
+    renderPurposeQuotes();
     renderKeyState();
 
     $("scanBtn").addEventListener("click", runScan);
