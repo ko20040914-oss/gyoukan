@@ -795,6 +795,11 @@ function skyDraw(now) {
     }
     c.stroke(); c.restore();
   }
+  /* まだ光っていない7件は、ほかの星と同じ見た目 */
+  if (sky.faintGold) {
+    c.fillStyle = "rgba(220,228,255,.55)";
+    for (var f = sky.gold; f < SKY_GOLD.length; f++) { var fp = goldPt(f); c.fillRect(fp.x - 0.5, fp.y - 0.5, 1, 1); }
+  }
   /* 金色の星 */
   for (var k = 0; k < sky.gold; k++) {
     var p = goldPt(k);
@@ -810,14 +815,85 @@ function skyFinalMsg() {
 }
 function skyShowFinal() {
   skyBaseUpTo(sky.stars.length);
-  sky.gold = SKY_GOLD.length; sky.seg = 0;
+  sky.gold = SKY_GOLD.length; sky.seg = 0; sky.faintGold = false;
   skyCountText(SKY_TOTAL); skyFinalMsg(); skyDraw(0);
+}
+/* 描画ループ：見えているあいだ、または演出中だけ回す（約30fps） */
+function skyLoop(now) {
+  sky.raf = 0;
+  if (!(sky.visible || sky.playing) || document.hidden) return;
+  if (now - sky.last > 33) { sky.last = now; skyDraw(now); }
+  sky.raf = requestAnimationFrame(skyLoop);
+}
+function skyWake() { if (!sky.raf && !reduced()) sky.raf = requestAnimationFrame(skyLoop); }
+function skyTween(ms, fn) {
+  return new Promise(function (done) {
+    var t0 = performance.now();
+    (function tick(now) {
+      var t = Math.min(1, (now - t0) / ms);
+      fn(t);
+      if (t < 1) requestAnimationFrame(tick); else done();
+    })(t0);
+  });
+}
+var skyPromise = null;
+function playSky() {
+  if (reduced()) { skyShowFinal(); sky.played = true; return Promise.resolve(); }
+  if (sky.playing && skyPromise) return skyPromise;
+  sky.playing = true; sky.played = true;
+  var msg = document.getElementById("skyMsg");
+  skyPromise = (async function () {
+    /* 下絵を白紙に戻す */
+    sky.base.getContext("2d").clearRect(0, 0, sky.base.width, sky.base.height);
+    sky.baseShown = 0; sky.gold = 0; sky.seg = 0; sky.faintGold = true;
+    msg.textContent = "80人分、ひと月分の記録が、夜空に散らばっています。";
+    skyWake();
+    /* 1. 星が現れる（件数も同じ割合で数える） */
+    await skyTween(1900, function (t) {
+      var e = 1 - Math.pow(1 - t, 2);
+      skyBaseUpTo(Math.round(e * sky.stars.length));
+      skyCountText(Math.round(e * SKY_TOTAL));
+    });
+    skyCountText(SKY_TOTAL);
+    await sleep(500);
+    msg.textContent = "この中に、田中ハルさんの7件があります。";
+    await sleep(900);
+    /* 2. 7件だけが光り、1本の線で結ばれる */
+    for (var i = 0; i < SKY_GOLD.length; i++) {
+      if (i > 0) { await skyTween(420, function (t) { sky.seg = t; }); }
+      sky.seg = 0; sky.gold = i + 1;
+      await sleep(i === 0 ? 300 : 90);
+    }
+    sky.faintGold = false;
+    await sleep(400);
+    skyFinalMsg();
+    sky.playing = false;
+  })();
+  return skyPromise;
 }
 function skyInit() {
   sky.stars = makeStars();
   skySize();
-  skyShowFinal();
+  var canObserve = "IntersectionObserver" in window;
+  if (reduced() || !canObserve) { skyShowFinal(); sky.played = true; return; }
+  /* 見える位置に来たら1回だけ演出する。瞬きは見えているあいだだけ */
+  sky.faintGold = true; skyDraw(0);
+  new IntersectionObserver(function (ents) {
+    ents.forEach(function (en) {
+      sky.visible = en.isIntersecting;
+      if (sky.visible) { if (!sky.played && en.intersectionRatio >= 0.35) playSky(); skyWake(); }
+    });
+  }, { threshold: [0, 0.35] }).observe(document.getElementById("sky"));
+  document.addEventListener("visibilitychange", function () { if (!document.hidden) skyWake(); });
 }
+var skyResizeTimer = 0;
+window.addEventListener("resize", function () {
+  clearTimeout(skyResizeTimer);
+  skyResizeTimer = setTimeout(function () {
+    if (sky.playing) return;
+    var n = sky.baseShown; skySize(); skyBaseUpTo(n); skyDraw(performance.now());
+  }, 150);
+});
 skyInit();
 
 /* 冒頭の7枚のメモ：デモの見本の記録IDから、初期データの原文をそのまま描く */
