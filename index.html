@@ -91,18 +91,35 @@ section>h3{font-size:16px;margin:22px 0 6px}
 .finale .btn{margin-top:12px}
 @media(prefers-reduced-motion:reduce){.tile,.threadlist li,.finale{transition:none;animation:none}}
 .result{margin-top:16px}
-.person{background:#fff;border:2px solid #b3541e;border-radius:14px;padding:18px;margin:14px 0}
-.person .rank{font-size:13px;font-weight:700;color:#b3541e}
-.person h3{margin:2px 0 10px;font-size:24px}
-.person h4{margin:16px 0 8px;font-size:15px}
-.ev{background:#fbf7ee;border-left:4px solid #b3541e;border-radius:6px;padding:10px 12px;margin:8px 0}
-.ev .meta{font-size:12px;color:#6f6252;font-weight:700}
-.ev p{margin:4px 0 0}
-.points{margin:8px 0;padding-left:20px}
-.points li{margin:6px 0}
 .demo-note{background:#fff8e1;border:1px solid #e9c46a;border-radius:10px;padding:12px 14px;font-size:14px;margin:12px 0}
 .mode{font-size:13px;font-weight:700;background:#fff;border:1px solid #c9bfa9;border-radius:999px;padding:4px 12px;display:inline-block;margin-top:10px}
 .err{background:#fdecea;border:1px solid #d66;border-radius:10px;padding:12px 14px;font-size:14px;margin:12px 0}
+/* ===== 朝の申し送り：引用が主役 ===== */
+.morning-h{display:flex;align-items:baseline;justify-content:space-between;gap:8px;margin:6px 0 0;font-size:13px;color:#6f6252;font-weight:700}
+.card{background:#fffdf8;border-radius:18px;padding:20px 16px 18px;margin:14px 0;box-shadow:0 1px 0 #e0d6bf,0 12px 28px rgba(80,55,20,.10);border-top:6px solid #b3541e}
+.card.second{border-top-color:#5b8fd6}
+.rankpill{display:inline-block;font-size:12px;font-weight:700;color:#fff;background:#b3541e;border-radius:999px;padding:2px 12px;letter-spacing:.06em}
+.card.second .rankpill{background:#5b8fd6}
+.card .name{margin:8px 0 0;font-size:30px;font-weight:800;letter-spacing:.04em;line-height:1.3}
+.card .name small{display:block;font-size:13px;font-weight:400;color:#6f6252;letter-spacing:0}
+.card .why{margin:10px 0 0;font-size:15px;font-weight:700;color:#8a5a17}
+.quotes{list-style:none;margin:16px 0 0;padding:0 0 0 14px;position:relative}
+.quotes::before{content:"";position:absolute;left:3px;top:10px;bottom:10px;border-left:2px dashed #e2c9a8}
+.quotes li.q{position:relative;margin:0;animation:rise .5s ease both}
+.quotes li.q::before{content:"";position:absolute;left:-16px;top:16px;width:12px;height:12px;border-radius:50%;background:var(--c);box-shadow:0 0 0 3px #fffdf8}
+.quotes blockquote{margin:0;background:#fff;border:1px solid #eee3cf;border-left:5px solid var(--c);border-radius:4px 12px 12px 4px;padding:10px 12px 11px}
+.quotes .qmeta{display:flex;align-items:center;gap:6px;font-size:12px;color:#6f6252;font-weight:700}
+.quotes .who{display:inline-flex;align-items:center;justify-content:center;width:20px;height:20px;border-radius:50%;background:var(--c);color:#fff;font-size:11px}
+.quotes .qtext{margin:4px 0 0;font-size:18px;line-height:1.65;font-weight:500;color:#231e18;text-indent:-.5em}
+.quotes li.gap{font-size:11.5px;color:#a0784a;padding:5px 0 5px 6px;font-weight:700;letter-spacing:.02em}
+.checks{list-style:none;margin:8px 0 0;padding:0}
+.checks label{display:flex;gap:10px;align-items:flex-start;margin:6px 0;font-size:16px;font-weight:500;background:#fff4e6;border-radius:12px;padding:11px 12px;cursor:pointer}
+.checks input{width:20px;height:20px;margin:2px 0 0;flex:none;accent-color:#b3541e}
+.checks input:checked+span{text-decoration:line-through;color:#8f8473}
+.card h4{margin:20px 0 4px;font-size:14px;color:#6f6252;letter-spacing:.04em}
+.principle{margin:16px 0 0;padding-top:12px;border-top:1px dashed #e0d6bf;font-size:13px;color:#6f6252;line-height:1.7}
+.principle b{color:#2b2620}
+@media(prefers-reduced-motion:reduce){.quotes li.q{animation:none}}
 footer{margin-top:40px;border-top:1px solid #d8cdb4;padding-top:16px;font-size:13px;color:#6f6252}
 </style>
 </head>
@@ -625,13 +642,32 @@ function callGemini() {
   });
 }
 
+/* 2つの記録のあいだ（＝行間）に何があったか：日時の進み方と、記録者の交代 */
+function slotIndex(r) { return slotOrder(r.slot); }
+function dayNumber(r) {
+  if (r.day) return r.day;
+  var m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(r.date || "");
+  return m ? Math.round(Date.UTC(+m[1], +m[2] - 1, +m[3]) / 86400000) : null;
+}
+function gapText(a, b) {
+  var parts = [];
+  var da = dayNumber(a), db = dayNumber(b);
+  if (da !== null && db !== null && (!!a.day === !!b.day)) {
+    var d = db - da;
+    parts.push(d === 0 ? "同じ日の" + b.slot : d === 1 ? "翌日の" + b.slot : d + "日後の" + b.slot);
+  }
+  parts.push(a.staff === b.staff ? "同じ記録者" + b.staff : "記録者 " + a.staff + " → " + b.staff);
+  return parts.join("・");
+}
+
 function renderResult(results, mode) {
   var box = document.getElementById("result");
-  var html = "";
+  var html = '<p class="morning-h"><span>' + (mode === "demo" ? "6日目 朝の申し送り" : "今朝の申し送り") + '</span><span>' +
+    (mode === "demo" ? "デモの見本" : "Gemini 4 Argon") + '</span></p>';
   if (mode === "demo") {
     html += '<div class="demo-note"><b>デモ結果は用意した合成データ用の見本です。</b><br>この結果はあらかじめ用意した見本で、AIがその場で作ったものではありません。APIキーを入力すると本番モード（Gemini 4 Argon）で横断します。</div>';
   } else if (mode === "live") {
-    html += '<div class="demo-note"><b>本番モードの結果です。</b>モデル：Gemini 4 Argon（' + esc(MODEL_ID) + '）。根拠の引用は記録の原文をそのまま出しています。</div>';
+    html += '<div class="demo-note"><b>本番モードの結果です。</b>モデル：Gemini 4 Argon（' + esc(MODEL_ID) + '）。AIが返したのは記録のIDだけで、引用はアプリが記録の原文をそのまま出しています。</div>';
   }
   if (!results || !results.length) {
     html += "<p>根拠を示せる候補はありませんでした。記録を増やして、もう一度横断してください。</p>";
@@ -641,18 +677,28 @@ function renderResult(results, mode) {
   results.slice(0, 2).forEach(function (it, i) {
     var p = person(it.residentId);
     if (!p) return;
-    var ev = it.evidenceIds.map(recordById).filter(Boolean);
-    html += '<div class="person"><div class="rank">' + (i === 0 ? "まず確認すべき人" : "次に確認すべき人") + '</div><h3>' + esc(p.name) + 'さん（' + p.age + '歳・' + esc(p.sex) + '）</h3>';
-    html += "<h4>根拠 ― 記録の原文（日付・記録者つき）</h4>";
-    ev.forEach(function (r) {
-      html += '<div class="ev"><div class="meta">' + esc(dateLabel(r)) + ' ' + esc(r.slot) + ' ・ 記録者' + esc(r.staff) + '</div><p>「' + esc(r.text) + '」</p></div>';
+    var ev = sortedRecords(it.evidenceIds.map(recordById).filter(Boolean));
+    var staff = {}, days = {};
+    ev.forEach(function (r) { staff[r.staff] = 1; days[colKey(r)] = 1; });
+    html += '<article class="card' + (i ? " second" : "") + '">';
+    html += '<span class="rankpill">' + (i === 0 ? "今日まず会いに行く人" : "次に会いに行く人") + '</span>';
+    html += '<p class="name">' + esc(p.name) + 'さん<small>' + esc(p.age + "歳・" + p.sex + "・仮名") + '</small></p>';
+    html += '<p class="why">' + Object.keys(staff).length + '人の職員が、' + Object.keys(days).length + '日間に別々に書いた' + ev.length + '行</p>';
+    html += '<ol class="quotes">';
+    ev.forEach(function (r, k) {
+      if (k > 0) html += '<li class="gap" aria-hidden="true">' + esc(gapText(ev[k - 1], r)) + '</li>';
+      html += '<li class="q" style="--c:' + staffColor(r.staff) + ';animation-delay:' + (k * 0.08) + 's"><blockquote>' +
+        '<div class="qmeta"><span class="who">' + esc(staffShort(r.staff)) + '</span>' + esc(colLabel(r) + " " + r.slot + "・記録者" + r.staff) + '</div>' +
+        '<p class="qtext">「' + esc(r.text) + '」</p></blockquote></li>';
     });
+    html += '</ol>';
     var cps = cleanPoints(it.checkPoints);
-    html += "<h4>確認ポイント ― 職員が見て確かめること</h4>";
-    html += cps.length ? "<ul class=\"points\">" + cps.map(function (c) { return "<li>" + esc(c) + "</li>"; }).join("") + "</ul>" : "<p class=\"hint\">確認ポイントはありません。</p>";
-    html += "</div>";
+    html += '<h4>会いに行ったら、見て確かめること</h4>';
+    html += cps.length ? '<div class="checks">' + cps.map(function (c) { return '<label><input type="checkbox"><span>' + esc(c) + '</span></label>'; }).join("") + '</div>'
+                       : '<p class="hint">確認ポイントはありません。</p>';
+    html += '<p class="principle"><b>AIは診断しません。</b>事実はAIが見つける。意味は本人に残す。<br>判断は、会いに行った職員が行います。</p>';
+    html += '</article>';
   });
-  html += "<p class=\"hint\">判断は現場の職員が行います。AIは順番と根拠だけを出します。</p>";
   box.innerHTML = html;
 }
 
