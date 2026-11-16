@@ -53,14 +53,43 @@ section>h3{font-size:16px;margin:22px 0 6px}
 .btn.sub{background:#2b2620}
 .btn.ghost{background:#fff;color:#2b2620;border:1.5px solid #c9bfa9}
 .btn:disabled{opacity:.5;cursor:wait}
-.stage{position:relative;background:#1c2333;color:#e8e6f5;border-radius:14px;padding:16px;margin-top:14px;min-height:220px;overflow:hidden}
-.stage .msg{margin:0 0 12px;font-weight:700;color:#ffd27a;min-height:26px}
-.chips{display:flex;flex-wrap:wrap;gap:8px;position:relative;z-index:2}
-.chip{background:#2a3350;border:1px solid #4a5578;border-radius:8px;padding:6px 9px;font-size:12px;opacity:.45;transition:opacity .6s,border-color .6s,background .6s}
-.chip.lit{opacity:1;border-color:#ffd27a;background:#3a2f16;color:#ffe9b0}
-.stage svg{position:absolute;inset:0;width:100%;height:100%;z-index:1;pointer-events:none}
-.stage svg polyline{fill:none;stroke:#ffd27a;stroke-width:2.5;stroke-linejoin:round;stroke-linecap:round;stroke-dasharray:100;stroke-dashoffset:100;transition:stroke-dashoffset 1.6s ease}
-.stage svg polyline.drawn{stroke-dashoffset:0}
+/* ===== 夜の横断：星座盤 ===== */
+.stage{position:relative;background:radial-gradient(120% 80% at 50% 0%,#26304a 0%,#151b2b 70%);color:#e8e6f5;border-radius:18px;padding:16px 14px 18px;margin-top:14px;overflow:hidden;box-shadow:0 10px 30px rgba(21,27,43,.35)}
+.stage .msg{margin:0;font-weight:700;color:#ffd27a;min-height:1.75em;font-size:15px}
+.meters{display:flex;gap:6px;flex-wrap:wrap;margin:8px 0 12px}
+.meters>span{font-size:11.5px;color:#aab2d3;background:rgba(255,255,255,.06);border-radius:999px;padding:2px 10px}
+.meters b{color:#fff;font-size:14px;font-variant-numeric:tabular-nums}
+.boardwrap{overflow-x:auto;-webkit-overflow-scrolling:touch;margin:0 -4px;padding:0 4px}
+.board{position:relative;display:grid;gap:4px 2px;min-width:100%}
+.board .colh{font-size:11px;color:#8d96bb;text-align:center;font-weight:700;padding-bottom:2px;border-radius:6px;transition:background .3s,color .3s}
+.board .colh.beam{background:rgba(255,210,122,.16);color:#ffd27a}
+.board .rowh{font-size:11px;color:#8d96bb;display:flex;align-items:center;justify-content:center;font-weight:700}
+.board .cell{display:flex;flex-wrap:wrap;gap:4px;justify-content:center;align-content:center;min-height:40px;padding:3px 0;border-radius:8px;transition:background .3s}
+.board .cell.beam{background:rgba(255,210,122,.07)}
+.tile{position:relative;z-index:2;width:30px;height:30px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;color:#dfe3f5;background:#222a42;border:2px solid var(--c,#8d96bb);opacity:.55;transition:opacity .5s,transform .35s,box-shadow .5s,background .5s,color .5s}
+.tile i{position:absolute;right:-5px;bottom:-5px;font-style:normal;font-size:9px;line-height:14px;width:14px;height:14px;border-radius:50%;background:var(--c,#8d96bb);color:#fff;text-align:center}
+.tile.read{opacity:.9;transform:scale(1.18);box-shadow:0 0 0 4px rgba(255,255,255,.12)}
+.tile.done{opacity:.8;transform:none;box-shadow:none}
+.tile.fade{opacity:.16}
+.tile.hit{opacity:1;background:#ffd27a;color:#2b2620;transform:scale(1.12);box-shadow:0 0 0 3px rgba(255,210,122,.25),0 0 18px rgba(255,210,122,.75)}
+.tile.hit.second{background:#9ad0ff;box-shadow:0 0 0 3px rgba(154,208,255,.25),0 0 18px rgba(154,208,255,.75)}
+.board svg{position:absolute;left:0;top:0;width:100%;height:100%;z-index:1;pointer-events:none;overflow:visible}
+.board svg path{fill:none;stroke:#ffd27a;stroke-width:2.5;stroke-linecap:round;filter:drop-shadow(0 0 4px rgba(255,210,122,.8))}
+.board svg path.second{stroke:#9ad0ff;filter:drop-shadow(0 0 4px rgba(154,208,255,.8))}
+.legend{font-size:11px;color:#8d96bb;margin:8px 0 0;line-height:1.6}
+.reading{margin-top:12px;min-height:58px;background:rgba(255,255,255,.05);border-radius:10px;padding:8px 12px;font-size:13.5px;line-height:1.6}
+.reading small{display:block;color:#8d96bb;font-size:11px}
+.threadlist{list-style:none;margin:12px 0 0;padding:0}
+.threadlist li{position:relative;padding:6px 0 6px 18px;font-size:13.5px;line-height:1.55;animation:rise .5s ease both}
+.threadlist li::before{content:"";position:absolute;left:3px;top:13px;width:9px;height:9px;border-radius:50%;background:#ffd27a;box-shadow:0 0 8px #ffd27a}
+.threadlist li.second::before{background:#9ad0ff;box-shadow:0 0 8px #9ad0ff}
+.threadlist li small{display:block;color:#8d96bb;font-size:11px}
+@keyframes rise{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+.finale{margin:14px 0 0;text-align:center;animation:rise .8s ease both}
+.finale .big{font-size:20px;font-weight:700;color:#fff;margin:0;line-height:1.5}
+.finale p{margin:4px 0 0;color:#c9cde4;font-size:14px}
+.finale .btn{margin-top:12px}
+@media(prefers-reduced-motion:reduce){.tile,.threadlist li,.finale{transition:none;animation:none}}
 .result{margin-top:16px}
 .person{background:#fff;border:2px solid #b3541e;border-radius:14px;padding:18px;margin:14px 0}
 .person .rank{font-size:13px;font-weight:700;color:#b3541e}
@@ -159,13 +188,17 @@ footer{margin-top:40px;border-top:1px solid #d8cdb4;padding-top:16px;font-size:1
 
 <section id="night">
 <h2>夜の横断</h2>
-<p>散らばった記録を、ひと晩かけて読み比べます。記録は証拠品のように1件ずつ並べ、つながりが見えた記録どうしが線で結ばれていきます。</p>
-<button class="btn" id="scanBtn" type="button">夜の横断をはじめる</button>
-<div class="stage" id="stage" hidden>
-<svg id="wires" aria-hidden="true"><polyline id="wire" pathLength="100" points="" /></svg>
-<p class="msg" id="stageMsg"></p>
-<div class="chips" id="chips"></div>
+<p>散らばった記録を、ひと晩で全部読み比べます。1つの丸が1件の記録です。つながりが見えた記録どうしが、1本の線で結ばれていきます。</p>
+<div class="stage" id="stage">
+<p class="msg" id="stageMsg" aria-live="polite"></p>
+<div class="meters"><span><b id="mRead">0</b> / <span id="mTotal">0</span>件を読んだ</span><span>つないだ記録 <b id="mLines">0</b>行</span><span>またいだ職員 <b id="mStaff">0</b>人</span></div>
+<div class="boardwrap"><div class="board" id="board"></div></div>
+<p class="legend">丸の中＝入居者の名前の1文字目　丸の色・右下の字＝書いた職員</p>
+<div class="reading" id="reading" aria-live="polite"><small>読んでいる記録</small>―</div>
+<ol class="threadlist" id="threadList"></ol>
+<div id="finale"></div>
 </div>
+<button class="btn" id="scanBtn" type="button">夜の横断をはじめる</button>
 <p class="hint" id="scanNote"></p>
 </section>
 
@@ -266,7 +299,7 @@ function dateLabel(r) { return r.day ? (r.day + "日目") : (r.date || ""); }
 function slotOrder(s) { return s === "朝" ? 0 : s === "昼" ? 1 : 2; }
 function sortedRecords(list) {
   return list.slice().sort(function (a, b) {
-    var da = a.day || 0, db = b.day || 0;
+    var da = a.day || 1e6, db = b.day || 1e6;
     if (da !== db) return da - db;
     if ((a.date || "") !== (b.date || "")) return (a.date || "") < (b.date || "") ? -1 : 1;
     return slotOrder(a.slot) - slotOrder(b.slot);
@@ -294,6 +327,7 @@ function renderAll() {
   sel.innerHTML = state.residents.map(function (x) { return '<option value="' + esc(x.id) + '">' + esc(x.name) + 'さん</option>'; }).join("");
   sel.value = selected;
   updateModeBadge();
+  if (!scanning) renderBoard();
 }
 function updateModeBadge() {
   var b = document.getElementById("modeBadge");
@@ -351,51 +385,207 @@ document.getElementById("delKeyBtn").addEventListener("click", function () {
   updateModeBadge();
 });
 if (apiKey) document.getElementById("keyStatus").textContent = "キーが保存されています（画面には表示しません）。本番モードで動きます。";
-/* 夜の横断：記録を証拠品のように並べ、つながりを線で示す */
+/* ===== 夜の横断：星座盤 =====
+   1つの丸＝1件の記録。列＝日、行＝朝・昼・夜。
+   つなぐのは「デモの見本」または「Geminiが返した記録ID」だけ（アプリ側でIDから原文を描く）。 */
+var STAFF_COLORS = { A: "#5b8fd6", B: "#a07ad6", C: "#3fae8a", D: "#e0954a", E: "#e0608f" };
+var EXTRA_COLORS = ["#7fa7b5", "#c2a15a", "#8f86c9", "#6fb36f", "#c98468"];
+function staffColor(s) {
+  if (STAFF_COLORS[s]) return STAFF_COLORS[s];
+  var h = 0; String(s).split("").forEach(function (ch) { h = (h * 31 + ch.charCodeAt(0)) >>> 0; });
+  return EXTRA_COLORS[h % EXTRA_COLORS.length];
+}
+function staffShort(s) { return String(s).charAt(0); }
+function colKey(r) { return r.day ? "d" + r.day : "t" + (r.date || ""); }
+function colLabel(r) {
+  if (r.day) return r.day + "日目";
+  var m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(r.date || "");
+  return m ? (+m[2]) + "/" + (+m[3]) : (r.date || "");
+}
+function reduced() { return !!(window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches); }
+function sleep(ms) { return new Promise(function (ok) { setTimeout(ok, reduced() ? 0 : ms); }); }
+
+var board = document.getElementById("board");
+var lastThreads = null; /* 横断後のつながり（画面幅が変わったら線を引き直す） */
+
+function renderBoard() {
+  var recs = sortedRecords(state.records);
+  var cols = [];
+  recs.forEach(function (r) { var k = colKey(r); if (cols.every(function (c) { return c.key !== k; })) cols.push({ key: k, label: colLabel(r) }); });
+  board.style.gridTemplateColumns = "26px repeat(" + Math.max(cols.length, 1) + ", minmax(46px, 1fr))";
+  var html = '<span></span>' + cols.map(function (c) { return '<span class="colh" data-col="' + esc(c.key) + '">' + esc(c.label) + '</span>'; }).join("");
+  ["朝", "昼", "夜"].forEach(function (slot) {
+    html += '<span class="rowh">' + slot + '</span>';
+    cols.forEach(function (c) {
+      html += '<div class="cell" data-col="' + esc(c.key) + '">' + recs.filter(function (r) { return colKey(r) === c.key && r.slot === slot; }).map(function (r) {
+        var p = person(r.resident);
+        var nm = p ? p.name : r.resident;
+        return '<span class="tile" data-rid="' + esc(r.id) + '" style="--c:' + staffColor(r.staff) + '" role="img" aria-label="' +
+          esc(colLabel(r) + " " + r.slot + "・記録者" + r.staff + "・" + nm + "さん") + '">' + esc(nm.charAt(0)) + '<i>' + esc(staffShort(r.staff)) + '</i></span>';
+      }).join("") + '</div>';
+    });
+  });
+  board.innerHTML = html + '<svg id="wires" aria-hidden="true"></svg>';
+  document.getElementById("mTotal").textContent = recs.length;
+  document.getElementById("mRead").textContent = "0";
+  document.getElementById("mLines").textContent = "0";
+  document.getElementById("mStaff").textContent = "0";
+  document.getElementById("stageMsg").textContent = recs.length + "件の記録が、まだバラバラに置かれています。";
+  document.getElementById("reading").innerHTML = "<small>読んでいる記録</small>―";
+  document.getElementById("threadList").innerHTML = "";
+  document.getElementById("finale").innerHTML = "";
+  lastThreads = null;
+}
+
+function tileCenter(rid) {
+  var el = board.querySelector('.tile[data-rid="' + rid + '"]');
+  if (!el) return null;
+  var b = board.getBoundingClientRect(), t = el.getBoundingClientRect();
+  return { x: t.left - b.left + t.width / 2, y: t.top - b.top + t.height / 2 };
+}
+/* 2点をなめらかなS字でつなぐ */
+function curve(p, q) {
+  var dx = q.x - p.x;
+  if (Math.abs(dx) < 4) { var bend = 26; return "M" + p.x + "," + p.y + " C" + (p.x + bend) + "," + p.y + " " + (q.x + bend) + "," + q.y + " " + q.x + "," + q.y; }
+  return "M" + p.x + "," + p.y + " C" + (p.x + dx / 2) + "," + p.y + " " + (q.x - dx / 2) + "," + q.y + " " + q.x + "," + q.y;
+}
+function addSegment(svg, p, q, cls, animate) {
+  var path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+  path.setAttribute("d", curve(p, q));
+  if (cls) path.setAttribute("class", cls);
+  svg.appendChild(path);
+  if (animate && !reduced()) {
+    var len = path.getTotalLength();
+    path.style.strokeDasharray = len; path.style.strokeDashoffset = len;
+    path.getBoundingClientRect();
+    path.style.transition = "stroke-dashoffset .55s ease-in-out";
+    path.style.strokeDashoffset = "0";
+  }
+}
+function redrawThreads() {
+  if (!lastThreads) return;
+  var svg = document.getElementById("wires");
+  svg.innerHTML = "";
+  lastThreads.forEach(function (th, ti) {
+    for (var i = 1; i < th.length; i++) {
+      var p = tileCenter(th[i - 1]), q = tileCenter(th[i]);
+      if (p && q) addSegment(svg, p, q, ti ? "second" : "", false);
+    }
+  });
+}
+window.addEventListener("resize", redrawThreads);
+
+function setBeam(key) {
+  board.querySelectorAll(".beam").forEach(function (e) { e.classList.remove("beam"); });
+  if (key) board.querySelectorAll('[data-col="' + key + '"]').forEach(function (e) { e.classList.add("beam"); });
+}
+
 var scanning = false;
-document.getElementById("scanBtn").addEventListener("click", function () {
+async function startScan() {
   if (scanning) return;
   scanning = true;
   var btn = document.getElementById("scanBtn");
   btn.disabled = true;
-  var stage = document.getElementById("stage");
-  stage.hidden = false;
-  var chips = document.getElementById("chips");
-  var wire = document.getElementById("wire");
-  wire.classList.remove("drawn"); wire.setAttribute("points", "");
-  var all = sortedRecords(state.records);
-  chips.innerHTML = all.map(function (r) {
-    return '<span class="chip" data-rid="' + esc(r.id) + '" data-res="' + esc(r.resident) + '">' + esc(r.id) + '・' + esc(dateLabel(r)) + ' ' + esc(r.slot) + '・記録者' + esc(r.staff) + '</span>';
-  }).join("");
+  renderBoard();
+  document.getElementById("night").scrollIntoView({ behavior: reduced() ? "auto" : "smooth", block: "start" });
+  var note = document.getElementById("scanNote");
   var msg = document.getElementById("stageMsg");
-  var msgs = ["記録を集めています……", "職員と職員のあいだを読み比べています……", "つながりが見えてきました。"];
-  var step = 0;
-  msg.textContent = msgs[0];
-  document.getElementById("scanNote").textContent = "";
-  document.getElementById("night").scrollIntoView({ behavior: "smooth", block: "start" });
-  var timer = setInterval(function () {
-    step++;
-    if (step < msgs.length) { msg.textContent = msgs[step]; return; }
-    clearInterval(timer);
-    finishScan();
-  }, 1500);
-  function finishScan() {
-    var tanaka = sortedRecords(all.filter(function (r) { return r.resident === "tanaka"; }));
-    var rect = stage.getBoundingClientRect();
-    var pts = [];
-    tanaka.forEach(function (r, i) {
-      var el = chips.querySelector('[data-rid="' + r.id + '"]');
-      if (!el) return;
-      el.classList.add("lit");
-      var b = el.getBoundingClientRect();
-      pts.push((b.left - rect.left + b.width / 2) + "," + (b.top - rect.top + b.height / 2));
-    });
-    wire.setAttribute("points", pts.join(" "));
-    requestAnimationFrame(function () { wire.classList.add("drawn"); });
-    msg.textContent = "横断が終わりました。朝の申し送りをご覧ください。";
-    setTimeout(function () { runCrossing(); }, 1600);
+  var reading = document.getElementById("reading");
+  var live = !!apiKey;
+  note.textContent = live ? "本番モード：Gemini 4 Argon（" + MODEL_ID + "）が記録を読みます。" : "デモモード：線は、用意した見本の結果どおりに引きます（AIはその場で動いていません）。";
+
+  /* 本番モードは読み始めと同時に問い合わせる（返ってくるのは記録IDだけ） */
+  var pending = live ? callGemini().then(function (r) { return { ok: true, results: r }; }, function (e) { return { ok: false, err: e }; })
+                     : Promise.resolve({ ok: true, results: [DEMO] });
+
+  /* 1. 全件を読む */
+  var recs = sortedRecords(state.records);
+  var step = Math.max(60, Math.min(170, Math.round(3600 / Math.max(recs.length, 1))));
+  msg.textContent = "夜。職員と職員のあいだを、1件ずつ読んでいます……";
+  for (var i = 0; i < recs.length; i++) {
+    var r = recs[i], p = person(r.resident);
+    var el = board.querySelector('.tile[data-rid="' + r.id + '"]');
+    setBeam(colKey(r));
+    if (el) el.classList.add("read");
+    reading.innerHTML = "<small>" + esc(colLabel(r) + " " + r.slot + "・記録者" + r.staff + "・" + (p ? p.name + "さん" : "")) + "</small>「" + esc(r.text) + "」";
+    document.getElementById("mRead").textContent = i + 1;
+    await sleep(step);
+    if (el) { el.classList.remove("read"); el.classList.add("done"); }
   }
-});
+  setBeam(null);
+
+  /* 2. 結果を待つ */
+  if (live) msg.textContent = "Gemini 4 Argon の返事を待っています……";
+  var res = await pending;
+  if (!res.ok) {
+    msg.textContent = "本番モードの呼び出しに失敗しました。";
+    reading.innerHTML = "<small>読んでいる記録</small>―";
+    document.getElementById("result").innerHTML = '<div class="err">本番モードの呼び出しに失敗しました。' + esc(res.err && res.err.message ? res.err.message : "通信エラー") + '<br>APIキーが正しいか、通信環境をご確認ください。デモの見本として表示することはしません。</div>';
+    note.textContent = "本番モードでエラーが出ました。古いモデルへの切り替えはしません。";
+    finishScan(); return;
+  }
+  var results = (res.results || []).slice(0, 2);
+  if (!results.length) {
+    msg.textContent = "根拠を示せるつながりは見つかりませんでした。";
+    renderResult([], live ? "live-empty" : "demo");
+    finishScan(); return;
+  }
+
+  /* 3. つなぐ */
+  msg.textContent = "つながりが見えてきました。";
+  reading.innerHTML = "<small>つながった記録</small>原文のまま、時間の順に並べます。";
+  var keep = {};
+  var threads = results.map(function (it) {
+    return sortedRecords(it.evidenceIds.map(recordById).filter(Boolean)).map(function (r) { keep[r.id] = 1; return r.id; });
+  });
+  board.querySelectorAll(".tile").forEach(function (t) { if (!keep[t.getAttribute("data-rid")]) t.classList.add("fade"); });
+  await sleep(700);
+  var svg = document.getElementById("wires");
+  var list = document.getElementById("threadList");
+  var staffSeen = {}, lines = 0;
+  for (var ti = 0; ti < threads.length; ti++) {
+    var th = threads[ti];
+    for (var k = 0; k < th.length; k++) {
+      var rec = recordById(th[k]);
+      if (k > 0) {
+        var a = tileCenter(th[k - 1]), b = tileCenter(th[k]);
+        if (a && b) addSegment(svg, a, b, ti ? "second" : "", true);
+        await sleep(560);
+      }
+      var tile = board.querySelector('.tile[data-rid="' + rec.id + '"]');
+      if (tile) { tile.classList.add("hit"); if (ti) tile.classList.add("second"); }
+      staffSeen[rec.staff] = 1; lines++;
+      document.getElementById("mLines").textContent = lines;
+      document.getElementById("mStaff").textContent = Object.keys(staffSeen).length;
+      var li = document.createElement("li");
+      if (ti) li.className = "second";
+      var pp = person(rec.resident);
+      li.innerHTML = "<small>" + esc(colLabel(rec) + " " + rec.slot + "・記録者" + rec.staff + "・" + (pp ? pp.name + "さん" : "")) + "</small>「" + esc(rec.text) + "」";
+      list.appendChild(li);
+      await sleep(k === 0 ? 420 : 160);
+    }
+  }
+  lastThreads = threads;
+
+  /* 4. 結び */
+  var first = threads[0] || [];
+  var nStaff = {}, nDay = {};
+  first.forEach(function (id) { var r = recordById(id); nStaff[r.staff] = 1; nDay[colKey(r)] = 1; });
+  msg.textContent = "横断が終わりました。";
+  document.getElementById("finale").innerHTML =
+    '<p class="big">' + Object.keys(nStaff).length + '人が' + Object.keys(nDay).length + '日間に書いた' + first.length + '行が、<br>1本の線になりました。</p>' +
+    '<p>誰も間違っていない。でも、1人では見えなかった。</p>' +
+    '<a class="btn" href="#handoff">朝の申し送りを見る ↓</a>';
+  renderResult(results, live ? "live" : "demo");
+  finishScan();
+}
+function finishScan() {
+  scanning = false;
+  var btn = document.getElementById("scanBtn");
+  btn.disabled = false;
+  btn.textContent = "もう一度、夜の横断をする";
+}
+document.getElementById("scanBtn").addEventListener("click", startScan);
 
 function buildPrompt() {
   var lines = sortedRecords(state.records).map(function (r) {
@@ -406,32 +596,6 @@ function buildPrompt() {
     "出力はJSONのみ。{\"results\":[{\"residentId\":\"tanaka\",\"evidenceIds\":[\"r01\"],\"checkPoints\":[\"確認する観察項目\"]}]} の形にする。\n" +
     "ルール：対象者ごとに全記録を横断して読む／出力は「対象者」「根拠となる記録のID」「確認ポイント」のみ／診断・病名・状態の断定をしない／根拠を示せない候補は出さない／出すのは最大2件／根拠となる記録は文章を書かずIDだけを出す／確認ポイントは職員がその場で見て確かめられる観察の言葉で書く。\n" +
     "記録一覧：\n" + lines.join("\n");
-}
-
-function runCrossing() {
-  var note = document.getElementById("scanNote");
-  if (!apiKey) {
-    note.textContent = "デモモード：APIキーが未入力のため、用意した見本の結果を表示します。";
-    renderResult([DEMO], "demo");
-    scanning = false;
-    document.getElementById("scanBtn").disabled = false;
-    return;
-  }
-  note.textContent = "本番モード：Gemini 4 Argon（" + MODEL_ID + "）に問い合わせています……";
-  callGemini().then(function (results) {
-    if (!results || !results.length) {
-      renderResult([], "live-empty");
-    } else {
-      renderResult(results, "live");
-    }
-  }).catch(function (err) {
-    var box = document.getElementById("result");
-    box.innerHTML = '<div class="err">本番モードの呼び出しに失敗しました。' + esc(err && err.message ? err.message : "通信エラー") + '<br>APIキーが正しいか、通信環境をご確認ください。デモの見本として表示することはしません。</div>';
-    note.textContent = "本番モードでエラーが出ました。古いモデルへの切り替えはしません。";
-  }).finally(function () {
-    scanning = false;
-    document.getElementById("scanBtn").disabled = false;
-  });
 }
 
 function callGemini() {
@@ -490,7 +654,6 @@ function renderResult(results, mode) {
   });
   html += "<p class=\"hint\">判断は現場の職員が行います。AIは順番と根拠だけを出します。</p>";
   box.innerHTML = html;
-  document.getElementById("handoff").scrollIntoView({ behavior: "smooth", block: "start" });
 }
 
 renderAll();
