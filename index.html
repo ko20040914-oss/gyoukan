@@ -21,15 +21,20 @@ h1{margin:0;font-size:42px;letter-spacing:.14em;line-height:1.2}
 .sub{margin:2px 0 0;font-size:17px;font-weight:700;color:#8a5a17}
 .purpose{margin:20px 0 0;font-size:21px;font-weight:700;line-height:1.7;border-left:5px solid #b3541e;padding-left:14px}
 .lede{margin:16px 0 0;font-size:15px}
-.contrast{display:grid;grid-template-columns:1fr;gap:12px;margin:22px 0 0}
-@media(min-width:560px){.contrast{grid-template-columns:1fr 1fr}}
+.contrast{display:grid;grid-template-columns:1fr;gap:0;margin:22px 0 0}
+.cta{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin:18px 0 0}
+.cta .btn{margin:0;font-size:17px;padding:14px 22px;box-shadow:0 8px 20px rgba(179,84,30,.3)}
+.cta small{font-size:12px;color:#6f6252}
+.notes{display:grid;grid-template-columns:1fr 1fr;gap:10px 8px;margin-top:10px}
+.note{background:#fffdf3;border-top:4px solid var(--c);border-radius:3px 3px 8px 8px;padding:8px 9px 9px;font-size:12.5px;line-height:1.55;box-shadow:0 2px 6px rgba(80,55,20,.12);transform:rotate(var(--r))}
+.note small{display:block;font-size:10.5px;color:#7a6c58;font-weight:700;margin-bottom:2px}
+.note:last-child{grid-column:1/-1;justify-self:center;width:62%}
+.answer .who small{font-size:13px;font-weight:400;color:#6f6252;margin-left:4px}
 .panel{background:#fff;border:1px solid #e0d6bf;border-radius:14px;padding:16px}
 .panel h2{margin:0 0 10px;font-size:15px}
-.memo{background:#fbf7ee;border:1px dashed #c9bfa9;border-radius:10px;padding:10px 12px;margin:8px 0;font-size:14px}
-.memo small{display:block;color:#6f6252;font-size:12px}
 .answer{background:#fff7e8;border:2px solid #b3541e}
 .answer .who{font-size:22px;font-weight:700}
-.arrow{text-align:center;font-size:22px;color:#b3541e;margin:2px 0}
+.arrow{text-align:center;font-size:15px;font-weight:700;color:#b3541e;margin:12px 0;letter-spacing:.04em}
 .steps{margin:22px 0 0;padding:0;list-style:none;counter-reset:s}
 .steps li{counter-increment:s;background:#fff;border:1px solid #e0d6bf;border-radius:12px;padding:14px 14px 14px 52px;margin:10px 0;position:relative}
 .steps li::before{content:counter(s);position:absolute;left:14px;top:14px;width:26px;height:26px;border-radius:50%;background:#2b2620;color:#fff;text-align:center;line-height:26px;font-weight:700;font-size:14px}
@@ -131,26 +136,23 @@ footer{margin-top:40px;border-top:1px solid #d8cdb4;padding-top:16px;font-size:1
 <p class="sub">翌朝、まず会いに行く人</p>
 <p class="purpose">バラバラに書かれた介護のメモを、夜のうちにAIが全部読んで、朝いちばんに見に行く人を、理由つきで教える道具です</p>
 <p class="lede">答えは1行の中ではなく、行と行の「間」にあります。</p>
+<div class="cta"><button class="btn" id="heroScanBtn" type="button">▶ 夜の横断を見る</button><small>デモは約10秒。APIキーは不要です。</small></div>
 <span class="mode" id="modeBadge">デモモード</span>
 </header>
 
 <div class="contrast">
 <div class="panel">
-<h2>夜の前 ― バラバラのメモ</h2>
-<p class="hint">5人の職員が、5日間に別々に書いた記録。1行だけ見ても、どれも小さなできごとです。</p>
-<div class="memo">「朝食は半分ほど残された。本人は『お腹が空かない』と」<small>1日目 朝・記録者A</small></div>
-<div class="memo">「足首に靴下の跡がくっきり残っていた」<small>3日目 朝・記録者D</small></div>
-<div class="memo">「朝食はほぼ手つかず。『疲れた』と横になっている」<small>5日目 朝・記録者A</small></div>
+<h2>夜の前 ― バラバラの7行</h2>
+<p class="hint">5人の職員が、5日間に別々に書いた記録（原文のまま）。1行ずつは、ただのメモです。</p>
+<div class="notes" id="heroNotes"></div>
 </div>
+<p class="arrow">↓ 夜、AIが全部読んで、つなぐ ↓</p>
 <div class="panel answer">
-<h2>朝 ― まず会いに行く人</h2>
-<p class="who">田中ハルさん（84歳・女性）</p>
-<p>根拠のメモ（5日目 朝・記録者A）</p>
-<div class="memo">「朝食はほぼ手つかず。『疲れた』と横になっている」</div>
-<p class="hint">この1行だけではなく、5日分の記録をつないで見えた人です。</p>
+<h2>朝 ― 今日まず会いに行く人</h2>
+<p class="who">田中ハルさん<small>84歳・女性・仮名</small></p>
+<p>出るのは1名だけ。根拠は、上の7行の原文そのものです。</p>
 </div>
 </div>
-<p class="arrow">↓ 夜、AIが全部読みます ↓</p>
 
 <ol class="steps">
 <li><b>職員が別々にメモを書く</b><br>朝・昼・夜、気づいたことをそのまま自由記述で残します。</li>
@@ -701,6 +703,17 @@ function renderResult(results, mode) {
   });
   box.innerHTML = html;
 }
+
+/* 冒頭の7枚のメモ：デモの見本の記録IDから、初期データの原文をそのまま描く */
+(function () {
+  var tilt = ["-2deg", "1.5deg", "1deg", "-1.5deg", "-1deg", "2deg", "-.5deg"];
+  document.getElementById("heroNotes").innerHTML = DEMO.evidenceIds.map(function (id, i) {
+    var r = SEED.records.filter(function (x) { return x.id === id; })[0];
+    return '<div class="note" style="--c:' + staffColor(r.staff) + ';--r:' + tilt[i % tilt.length] + '"><small>' +
+      esc(colLabel(r) + " " + r.slot + "・記録者" + r.staff) + '</small>「' + esc(r.text) + '」</div>';
+  }).join("");
+})();
+document.getElementById("heroScanBtn").addEventListener("click", startScan);
 
 renderAll();
 </script>
